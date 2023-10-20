@@ -7,7 +7,7 @@
 #define RANDOMIZE_ORDER() true
 
 // If true, will give the same random option order each run (useful for debugging)
-#define DETERMINISTIC() true
+#define DETERMINISTIC() false
 
 // If deterministic, will use this value as the random seed (useful for debugging)
 #define DETERMINISTIC_SEED() 0x7DA771D9
@@ -19,16 +19,15 @@ struct Option
     bool used = false;
 };
 
+#if DETERMINISTIC()
+unsigned int g_seed = DETERMINISTIC_SEED();
+#else
+unsigned int g_seed = std::random_device()();
+#endif
+
 std::mt19937 GetRNG()
 {
-#if DETERMINISTIC()
-    std::mt19937 rng(DETERMINISTIC_SEED());
-#else
-    std::random_device rd;
-    auto a = rd();
-    printf("Seed = 0x%X\n", a);
-    std::mt19937 rng(a);
-#endif
+    std::mt19937 rng(g_seed);
     return rng;
 }
 
@@ -195,6 +194,7 @@ int main(int argc, char** argv)
         printf("Generating experiments\n  CountMultiplier=%i\n", countMultiplier);
         for (int i = 0; i < levels.size(); ++i)
             printf("  Level%i = %i\n", i, levels[i]);
+        printf("  Random seed = 0x%X\n", g_seed);
     }
 
     // Get the unique number of combinations needed for each pair of columns
@@ -274,12 +274,6 @@ int main(int argc, char** argv)
             int desiredFirstColumnValue = columnPairValueIndex / secondColumnValueCount;
 
             int scanIndex = scanIndices[stackSize];
-            if (scanIndex >= options.size())
-            {
-                printf("Could not find a solution (1)!\n\n");
-                return 2;
-            }
-
             while (scanIndex < options.size())
             {
                 if (options[scanIndex].used)
@@ -315,8 +309,8 @@ int main(int argc, char** argv)
             {
                 if (solutionStack.size() == 0)
                 {
-                    printf("Could not find a solution (2)!\n\n");
-                    return 3;
+                    printf("Could not find a solution!\n\n");
+                    return 2;
                 }
 
                 int lastSolutionScanIndex = *solutionStack.rbegin();
@@ -324,7 +318,6 @@ int main(int argc, char** argv)
                 OptionIndexToOptions(options[lastSolutionScanIndex].index, levels, option);
                 UnapplyOption(levels, columnPairValueCounts, option);
                 options[lastSolutionScanIndex].used = false;
-                scanIndices[solutionStack.size()] = lastSolutionScanIndex + 1;
                 scanIndices[solutionStack.size() + 1] = 0;
             }
         }
@@ -356,8 +349,6 @@ int main(int argc, char** argv)
     return 0;
 }
 /*
-TODO: when randomized, it can fail to find a solution. investigate!
- 
 NOTES:
 * just strength 2 arrays. you can modify the code to have strength 3 or higher arrays
 * could run probably faster as algorithm x with dancing links
