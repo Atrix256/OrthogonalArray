@@ -6,8 +6,11 @@
 // If true, will try options in a random order
 #define RANDOMIZE_ORDER() true
 
-// If true, will give the same random option order each run (for debugging)
-#define DETERMINISTIC() false
+// If true, will give the same random option order each run (useful for debugging)
+#define DETERMINISTIC() true
+
+// If deterministic, will use this value as the random seed (useful for debugging)
+#define DETERMINISTIC_SEED() 0x7DA771D9
 
 // An option to try for the orthogonal array
 struct Option
@@ -19,10 +22,12 @@ struct Option
 std::mt19937 GetRNG()
 {
 #if DETERMINISTIC()
-    std::mt19937 rng;
+    std::mt19937 rng(DETERMINISTIC_SEED());
 #else
     std::random_device rd;
-    std::mt19937 rng(rd());
+    auto a = rd();
+    printf("Seed = 0x%X\n", a);
+    std::mt19937 rng(a);
 #endif
     return rng;
 }
