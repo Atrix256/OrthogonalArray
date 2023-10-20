@@ -120,7 +120,7 @@ void UnapplyOption(const std::vector<int>& levels, std::vector<std::vector<int>>
     }
 }
 
-bool ApplyOption(const std::vector<int>& levels, std::vector<std::vector<int>>& columnPairValueCounts, std::vector<int>& option, int countMultiplier)
+bool ApplyOption(const std::vector<int>& levels, std::vector<std::vector<int>>& columnPairValueCounts, std::vector<int>& option, int experimentCount)
 {
     // First see if we can apply the option
     for (int columnPairIndex = 0; columnPairIndex < (int)columnPairValueCounts.size(); ++columnPairIndex)
@@ -133,7 +133,10 @@ bool ApplyOption(const std::vector<int>& levels, std::vector<std::vector<int>>& 
 
         int value = option[firstColumn] * levels[secondColumn] + option[secondColumn];
 
-        if (valueCounts[value] >= countMultiplier)
+        int valueCount = levels[firstColumn] * levels[secondColumn];
+        int countAllowed = experimentCount / valueCount;
+
+        if (valueCounts[value] >= countAllowed)
             return false;
     }
 
@@ -255,7 +258,7 @@ int main(int argc, char** argv)
 
     // Fill the first columnPairValueCounts in order, and let the other slots fill them in, in the process.
     // As an example, if column 0 and column 1 were 2 level factors (binary parameters),
-    // we'd fill 00, then 01, then 10, then 11.  We need "countMultiplier" of each.
+    // we'd fill 00, then 01, then 10, then 11.  We need "experimentCount" / "columnCombinationCount" of each.
     // We end when stack is "experimentCount" in size
     std::vector<int> solutionStack;
     {
@@ -273,15 +276,21 @@ int main(int argc, char** argv)
             int desiredSecondColumnValue = columnPairValueIndex % secondColumnValueCount;
             int desiredFirstColumnValue = columnPairValueIndex / secondColumnValueCount;
 
+            // scan from the starting location.
+            // If we aren't the first in this series of column values, the previous solution will have told us to start after it.
+            // If we are revisiting this possible solution stack index because our previous choice didn't work, we are starting after the last choice.
+            // Else we start at 0.
             int scanIndex = scanIndices[stackSize];
             while (scanIndex < options.size())
             {
+                // Only allow options to be used once
                 if (options[scanIndex].used)
                 {
                     scanIndex++;
                     continue;
                 }
 
+                // If this option doesn't fit the pattern we are lookign for right now, ignore it
                 OptionIndexToOptions(options[scanIndex].index, levels, option);
                 if (option[0] != desiredFirstColumnValue || option[1] != desiredSecondColumnValue)
                 {
@@ -289,30 +298,40 @@ int main(int argc, char** argv)
                     continue;
                 }
 
-                if (ApplyOption(levels, columnPairValueCounts, option, countMultiplier))
+                // If we are able to apply the option, that means it doesn't conflict with any
+                // of the previously chosen items, so we take it as the next item in the solution
+                if (ApplyOption(levels, columnPairValueCounts, option, experimentCount))
                 {
+                    // Take it as the next item in the solution
                     options[scanIndex].used = true;
                     solutionStack.push_back(scanIndex);
+
+                    // If we revisit this solution, we'll start after this
                     scanIndices[stackSize] = scanIndex + 1;
 
+                    // If the next solution stack index is looking for this same pattern, it needs to start
+                    // after this solution.
                     if (solutionStack.size() < options.size() && ((stackSize + 1) % countMultiplier != 0))
                         scanIndices[stackSize + 1] = scanIndex + 1;
 
                     break;
                 }
 
+                // Otherwise, the option conflicted with something else, so try the next option
                 scanIndex++;
             }
 
             // If we hit this, we hit a dead end, so need to back track
             if (scanIndex >= options.size())
             {
+                // If there's nothing left on the stack, that means we reached the end of our search
                 if (solutionStack.size() == 0)
                 {
                     printf("Could not find a solution!\n\n");
                     return 2;
                 }
 
+                // Otherwise, unapply the option and continue the search from here
                 int lastSolutionScanIndex = *solutionStack.rbegin();
                 solutionStack.pop_back();
                 OptionIndexToOptions(options[lastSolutionScanIndex].index, levels, option);
