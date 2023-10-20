@@ -267,12 +267,13 @@ int main(int argc, char** argv)
         int firstColumnValueCount = levels[0];
         int secondColumnValueCount = levels[1];
         int firstTwoColumnCombinationCount = firstColumnValueCount * secondColumnValueCount;
+        int firstTwoColumnValueCount = experimentCount / firstTwoColumnCombinationCount;
         std::vector<int> option;
         while (solutionStack.size() < experimentCount)
         {
             // get the values we want for the first and second column
             int stackSize = (int)solutionStack.size();
-            int columnPairValueIndex = stackSize / countMultiplier;
+            int columnPairValueIndex = stackSize / firstTwoColumnValueCount;
             int desiredSecondColumnValue = columnPairValueIndex % secondColumnValueCount;
             int desiredFirstColumnValue = columnPairValueIndex / secondColumnValueCount;
 
@@ -311,7 +312,7 @@ int main(int argc, char** argv)
 
                     // If the next solution stack index is looking for this same pattern, it needs to start
                     // after this solution.
-                    if (solutionStack.size() < options.size() && ((stackSize + 1) % countMultiplier != 0))
+                    if (solutionStack.size() < options.size() && ((stackSize + 1) % firstTwoColumnValueCount != 0))
                         scanIndices[stackSize + 1] = scanIndex + 1;
 
                     break;
@@ -372,5 +373,6 @@ NOTES:
 * just strength 2 arrays. you can modify the code to have strength 3 or higher arrays
 * could run probably faster as algorithm x with dancing links
 * the rabbit hole goes far deeper
-
+* 1 3 3 3 3 3 fails. too many constraints. don't know how to calculate when that fail point is.
+ * 1 3 3 3 3 succeeds though, as does 2 3 3 3 3 3
 */
