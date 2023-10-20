@@ -368,11 +368,3 @@ int main(int argc, char** argv)
 
     return 0;
 }
-/*
-NOTES:
-* just strength 2 arrays. you can modify the code to have strength 3 or higher arrays
-* could run probably faster as algorithm x with dancing links
-* the rabbit hole goes far deeper
-* 1 3 3 3 3 3 fails. too many constraints. don't know how to calculate when that fail point is.
- * 1 3 3 3 3 succeeds though, as does 2 3 3 3 3 3
-*/
